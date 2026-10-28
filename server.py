@@ -13,13 +13,17 @@ sys.path.insert(0, BASE_DIR)
 from engine.indexer import InvertedIndex
 from engine.crawler import WebSpider
 from engine.web_retriever import WebRetriever
+from engine.knowledge_graph import KnowledgeGraph
+from engine.ai_overview import AIOverviewEngine
 
-app = FastAPI(title="Aira Search Engine", version="1.1.0")
+app = FastAPI(title="Aira Search Engine", version="1.2.0")
 
 INDEX_FILE = os.path.join(BASE_DIR, "data", "index.json")
 indexer = InvertedIndex(data_file=INDEX_FILE)
 spider = WebSpider(indexer=indexer)
 retriever = WebRetriever()
+kg = KnowledgeGraph()
+ai_engine = AIOverviewEngine()
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
@@ -75,14 +79,15 @@ async def search(request: Request, background_tasks: BackgroundTasks, q: str = Q
     sovereign_results = []
     for r in local_results:
         if r.get("score", 0) > 2.0 or any(k in q_clean.lower() for k in ["airlys", "aira", "adam", "eehan"]):
-            r_copy = r.copy()
-            r_copy["source"] = "Sovereign"
-            sovereign_results.append(r_copy)
+            sovereign_results.append(r.copy())
 
     # 2. Live Web Retrieval across Wikipedia, Bing, and GitHub
     web_results = await retriever.search_live(q_clean, max_results=15)
 
-    # 3. Merge & Deduplicate
+    # 3. Fetch Google-Style Identity Card / Knowledge Graph
+    knowledge_panel = kg.get_panel(q_clean)
+
+    # 4. Merge & Deduplicate
     seen_urls = set()
     combined = []
 
@@ -90,21 +95,26 @@ async def search(request: Request, background_tasks: BackgroundTasks, q: str = Q
         url = item.get("url")
         if url not in seen_urls:
             seen_urls.add(url)
+            item.pop("source", None)
             combined.append(item)
 
     for item in web_results:
         url = item.get("url")
         if url not in seen_urls:
             seen_urls.add(url)
+            item.pop("source", None)
             combined.append(item)
 
-    # Fallback to general local results if needed
     if len(combined) < 5:
         for item in local_results:
             url = item.get("url")
             if url not in seen_urls:
                 seen_urls.add(url)
+                item.pop("source", None)
                 combined.append(item)
+
+    # 5. Generate ✨ Aira AI Overview (Gemini-style Generative Summary)
+    ai_overview = ai_engine.generate_overview(q_clean, search_results=combined, knowledge_panel=knowledge_panel)
 
     elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
 
@@ -116,7 +126,9 @@ async def search(request: Request, background_tasks: BackgroundTasks, q: str = Q
         "query": q_clean,
         "results": combined,
         "total": len(combined),
-        "time_ms": elapsed_ms
+        "time_ms": elapsed_ms,
+        "knowledge_panel": knowledge_panel,
+        "ai_overview": ai_overview
     })
 
 @app.api_route("/healthz", methods=["GET", "HEAD"])
@@ -132,22 +144,26 @@ async def api_search(background_tasks: BackgroundTasks, q: str = Query(..., alia
     start_t = time.perf_counter()
     local_data = indexer.search(q_clean, top_k=limit)
     web_results = await retriever.search_live(q_clean, max_results=limit)
+    knowledge_panel = kg.get_panel(q_clean)
 
     seen_urls = set()
     combined = []
     for item in local_data.get("results", []):
         if item.get("score", 0) > 2.0 or any(k in q_clean.lower() for k in ["airlys", "aira", "adam", "eehan"]):
             item_copy = item.copy()
-            item_copy["source"] = "Sovereign"
+            item_copy.pop("source", None)
             seen_urls.add(item["url"])
             combined.append(item_copy)
 
     for item in web_results:
         if item["url"] not in seen_urls:
+            item.pop("source", None)
             seen_urls.add(item["url"])
             combined.append(item)
 
+    ai_overview = ai_engine.generate_overview(q_clean, search_results=combined, knowledge_panel=knowledge_panel)
     elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+
     if web_results:
         background_tasks.add_task(auto_index_results, web_results)
 
@@ -155,7 +171,9 @@ async def api_search(background_tasks: BackgroundTasks, q: str = Query(..., alia
         "query": q_clean,
         "results": combined[:limit],
         "total": len(combined),
-        "time_ms": elapsed_ms
+        "time_ms": elapsed_ms,
+        "knowledge_panel": knowledge_panel,
+        "ai_overview": ai_overview
     }
 
 @app.get("/api/status")
