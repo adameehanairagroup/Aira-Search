@@ -12,12 +12,14 @@ sys.path.insert(0, BASE_DIR)
 
 from engine.indexer import InvertedIndex
 from engine.crawler import WebSpider
+from engine.web_retriever import WebRetriever
 
-app = FastAPI(title="Aira Search Engine", version="1.0.0")
+app = FastAPI(title="Aira Search Engine", version="1.1.0")
 
 INDEX_FILE = os.path.join(BASE_DIR, "data", "index.json")
 indexer = InvertedIndex(data_file=INDEX_FILE)
 spider = WebSpider(indexer=indexer)
+retriever = WebRetriever()
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
@@ -42,18 +44,79 @@ def render_template(template_name: str, request: Request, context: dict = None):
 async def home(request: Request):
     return render_template("index.html", request)
 
+def auto_index_results(results: list):
+    """Background task to index newly discovered web pages into local BM25 index."""
+    changed = False
+    for r in results:
+        url = r.get("url")
+        if url and not any(doc.get("url") == url for doc in indexer.documents.values()):
+            indexer.add_document(
+                url=url,
+                title=r.get("title", ""),
+                content=r.get("snippet", ""),
+                snippet=r.get("snippet", "")
+            )
+            changed = True
+    if changed:
+        indexer.save()
+
 @app.api_route("/search", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def search(request: Request, q: str = Query("", alias="q")):
+async def search(request: Request, background_tasks: BackgroundTasks, q: str = Query("", alias="q")):
     q_clean = q.strip()
     if not q_clean:
         return render_template("index.html", request)
 
-    search_data = indexer.search(q_clean, top_k=25)
+    start_t = time.perf_counter()
+
+    # 1. Sovereign Local BM25 Index Search
+    local_data = indexer.search(q_clean, top_k=15)
+    local_results = local_data.get("results", [])
+
+    sovereign_results = []
+    for r in local_results:
+        if r.get("score", 0) > 2.0 or any(k in q_clean.lower() for k in ["airlys", "aira", "adam", "eehan"]):
+            r_copy = r.copy()
+            r_copy["source"] = "Sovereign"
+            sovereign_results.append(r_copy)
+
+    # 2. Live Web Retrieval across Wikipedia, Bing, and GitHub
+    web_results = await retriever.search_live(q_clean, max_results=15)
+
+    # 3. Merge & Deduplicate
+    seen_urls = set()
+    combined = []
+
+    for item in sovereign_results:
+        url = item.get("url")
+        if url not in seen_urls:
+            seen_urls.add(url)
+            combined.append(item)
+
+    for item in web_results:
+        url = item.get("url")
+        if url not in seen_urls:
+            seen_urls.add(url)
+            combined.append(item)
+
+    # Fallback to general local results if needed
+    if len(combined) < 5:
+        for item in local_results:
+            url = item.get("url")
+            if url not in seen_urls:
+                seen_urls.add(url)
+                combined.append(item)
+
+    elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+
+    # Auto-index web results in background
+    if web_results:
+        background_tasks.add_task(auto_index_results, web_results)
+
     return render_template("results.html", request, {
         "query": q_clean,
-        "results": search_data["results"],
-        "total": search_data["total"],
-        "time_ms": search_data["time_ms"]
+        "results": combined,
+        "total": len(combined),
+        "time_ms": elapsed_ms
     })
 
 @app.api_route("/healthz", methods=["GET", "HEAD"])
@@ -61,17 +124,47 @@ async def healthz():
     return {"status": "ok", "service": "aira-search"}
 
 @app.get("/api/search")
-async def api_search(q: str = Query(..., alias="q"), limit: int = 20):
-    if not q.strip():
+async def api_search(background_tasks: BackgroundTasks, q: str = Query(..., alias="q"), limit: int = 20):
+    q_clean = q.strip()
+    if not q_clean:
         return JSONResponse({"results": [], "total": 0, "time_ms": 0.0})
-    return indexer.search(q.strip(), top_k=limit)
+
+    start_t = time.perf_counter()
+    local_data = indexer.search(q_clean, top_k=limit)
+    web_results = await retriever.search_live(q_clean, max_results=limit)
+
+    seen_urls = set()
+    combined = []
+    for item in local_data.get("results", []):
+        if item.get("score", 0) > 2.0 or any(k in q_clean.lower() for k in ["airlys", "aira", "adam", "eehan"]):
+            item_copy = item.copy()
+            item_copy["source"] = "Sovereign"
+            seen_urls.add(item["url"])
+            combined.append(item_copy)
+
+    for item in web_results:
+        if item["url"] not in seen_urls:
+            seen_urls.add(item["url"])
+            combined.append(item)
+
+    elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
+    if web_results:
+        background_tasks.add_task(auto_index_results, web_results)
+
+    return {
+        "query": q_clean,
+        "results": combined[:limit],
+        "total": len(combined),
+        "time_ms": elapsed_ms
+    }
 
 @app.get("/api/status")
 async def api_status():
     uptime_sec = int(time.time() - START_TIME)
     return {
-        "engine": "Aira Search Core v1.0",
+        "engine": "Aira Search Core v1.1 Hybrid",
         "cluster_status": "ONLINE",
+        "federation": ["Wikipedia CirrusSearch", "Microsoft Bing Web Index", "GitHub Ecosystem", "Aira BM25 Core"],
         "total_documents_indexed": indexer.total_docs,
         "total_unique_terms": len(indexer.index),
         "avg_doc_length": round(indexer.avg_doc_length, 1),

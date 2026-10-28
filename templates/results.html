@@ -303,6 +303,13 @@
                 <a class="result-url" href="{{ item.url }}" target="_blank">
                     <span class="result-favicon"></span>
                     <span>{{ item.url }}</span>
+                    {% if item.source == 'Sovereign' %}
+                        <span style="display: inline-block; background: #e8f0fe; color: #1a73e8; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">⚡ Sovereign Verified</span>
+                    {% elif item.source == 'Wikipedia' %}
+                        <span style="display: inline-block; background: #f1f3f4; color: #5f6368; font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">📚 Encyclopedia</span>
+                    {% elif item.source == 'GitHub' %}
+                        <span style="display: inline-block; background: #24292e; color: #ffffff; font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">🐙 Open Source</span>
+                    {% endif %}
                 </a>
                 <h2 style="font-size: 20px;">
                     <a class="result-title" href="{{ item.url }}" target="_blank">{{ item.title }}</a>
