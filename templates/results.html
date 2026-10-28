@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ query }} - Aira Search</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #202124;
+            --bar-border: #dfe1e5;
+            --bar-shadow: 0 1px 6px rgba(32,33,36,.28);
+            --title-color: #1a0dab;
+            --url-color: #202124;
+            --snippet-color: #4d5156;
+            --stats-color: #70757a;
+            --border-bottom: #ebebeb;
+            --tab-active: #1a73e8;
+            --footer-bg: #f2f2f2;
+            --footer-border: #dadce0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #202124;
+                --text-color: #e8eaed;
+                --bar-border: #5f6368;
+                --bar-shadow: 0 1px 6px rgba(0,0,0,.45);
+                --title-color: #8ab4f8;
+                --url-color: #dadce0;
+                --snippet-color: #bdc1c6;
+                --stats-color: #9aa0a6;
+                --border-bottom: #3c4043;
+                --tab-active: #8ab4f8;
+                --footer-bg: #171717;
+                --footer-border: #3c4043;
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            padding: 20px 24px 0 24px;
+            border-bottom: 1px solid var(--border-bottom);
+        }
+
+        .top-row {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            max-width: 1200px;
+        }
+
+        .logo-small {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1.5px;
+            text-decoration: none;
+            display: flex;
+            flex-shrink: 0;
+        }
+
+        .logo-small .l-blue   { color: #4285f4; }
+        .logo-small .l-red    { color: #ea4335; }
+        .logo-small .l-yellow { color: #fbbc05; }
+        .logo-small .l-green  { color: #34a853; }
+
+        .search-form {
+            flex: 1;
+            max-width: 692px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            height: 44px;
+            border: 1px solid transparent;
+            border-radius: 24px;
+            padding: 0 18px;
+            box-shadow: 0 2px 5px 1px rgba(64,60,67,.16);
+            background: var(--bg-color);
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .search-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            width: 20px;
+            height: 20px;
+            fill: #4285f4;
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            margin-top: 18px;
+            margin-left: 112px;
+            font-size: 14px;
+        }
+
+        .tab {
+            text-decoration: none;
+            color: var(--stats-color);
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab.active {
+            color: var(--tab-active);
+            font-weight: 500;
+            border-bottom: 3px solid var(--tab-active);
+        }
+
+        /* Results Container */
+        .content-area {
+            flex: 1;
+            max-width: 652px;
+            margin-left: 136px;
+            padding: 12px 16px 40px 16px;
+        }
+
+        .stats-text {
+            font-size: 14px;
+            color: var(--stats-color);
+            margin-bottom: 24px;
+        }
+
+        .result-item {
+            margin-bottom: 32px;
+        }
+
+        .result-url {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--url-color);
+            margin-bottom: 4px;
+            text-decoration: none;
+        }
+
+        .result-favicon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e8eaed;
+            display: inline-block;
+        }
+
+        .result-title {
+            font-size: 20px;
+            line-height: 1.3;
+            color: var(--title-color);
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .result-title:hover {
+            text-decoration: underline;
+        }
+
+        .result-snippet {
+            font-size: 14px;
+            line-height: 1.58;
+            color: var(--snippet-color);
+        }
+
+        .no-results {
+            padding: 40px 0;
+            font-size: 16px;
+            color: var(--stats-color);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 48px;
+            margin-bottom: 30px;
+        }
+
+        .pagination a {
+            text-decoration: none;
+            color: #4285f4;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--footer-bg);
+            font-size: 14px;
+            color: var(--stats-color);
+            margin-top: auto;
+        }
+
+        .footer-location {
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--footer-border);
+            margin-left: 112px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            padding: 14px 24px;
+            margin-left: 112px;
+        }
+
+        .footer a {
+            color: var(--stats-color);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 800px) {
+            .tabs { margin-left: 0; overflow-x: auto; }
+            .content-area { margin-left: 0; }
+            .footer-location, .footer-links { margin-left: 0; }
+            .top-row { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .search-form { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="top-row">
+            <a href="/" class="logo-small">
+                <span class="l-blue">A</span>
+                <span class="l-red">i</span>
+                <span class="l-yellow">r</span>
+                <span class="l-green">a</span>
+            </a>
+
+            <form class="search-form" action="/search" method="get">
+                <div class="search-bar">
+                    <input class="search-input" type="text" name="q" value="{{ query }}" autocomplete="off" autofocus>
+                    <button class="search-icon-btn" type="submit">
+                        <svg class="search-icon" focusable="false" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <nav class="tabs">
+            <a href="#" class="tab active">All</a>
+            <a href="#" class="tab">Images</a>
+            <a href="#" class="tab">News</a>
+            <a href="#" class="tab">Videos</a>
+            <a href="#" class="tab">Tech</a>
+            <a href="/api/search?q={{ query }}" target="_blank" class="tab">JSON API</a>
+        </nav>
+    </header>
+
+    <main class="content-area">
+        <div class="stats-text">
+            About {{ total }} results ({{ time_ms }} ms)
+        </div>
+
+        {% if results %}
+            {% for item in results %}
+            <article class="result-item">
+                <a class="result-url" href="{{ item.url }}" target="_blank">
+                    <span class="result-favicon"></span>
+                    <span>{{ item.url }}</span>
+                </a>
+                <h2 style="font-size: 20px;">
+                    <a class="result-title" href="{{ item.url }}" target="_blank">{{ item.title }}</a>
+                </h2>
+                <p class="result-snippet">{{ item.snippet }}</p>
+            </article>
+            {% endfor %}
+
+            <div class="pagination">
+                <span style="color: #4285f4;">A</span>
+                <span style="color: #ea4335;">i</span>
+                <span style="color: #fbbc05;">i</span>
+                <span style="color: #4285f4;">i</span>
+                <span style="color: #34a853;">r</span>
+                <span style="color: #ea4335;">a</span>
+                <a href="#" style="margin-left: 12px; font-size: 18px;">Next &gt;</a>
+            </div>
+        {% else %}
+            <div class="no-results">
+                <p>Your search - <strong>{{ query }}</strong> - did not match any indexed documents.</p>
+                <br>
+                <p>Suggestions:</p>
+                <ul style="margin-left: 24px; margin-top: 8px;">
+                    <li>Make sure all words are spelled correctly.</li>
+                    <li>Try different keywords (e.g. <code>Airlys</code>, <code>AiraLang</code>, <code>Linux</code>, <code>Kerala</code>, <code>Compiler</code>).</li>
+                    <li>Try more general keywords.</li>
+                </ul>
+            </div>
+        {% endif %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-location">
+            India • Kerala
+        </div>
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="https://airagroup.technology" target="_blank">Aira Group</a>
+            <a href="/api/status">Cluster Stats</a>
+            <a href="https://github.com/adameehanairagroup/Aira-Search" target="_blank">GitHub</a>
+        </div>
+    </footer>
+
+</body>
+</html>
