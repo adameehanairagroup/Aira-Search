@@ -1,15 +1,65 @@
-import re
+import os
+import json
+import urllib.request
 import urllib.parse
 from urllib.parse import urlparse
+import re
 
 class AIOverviewEngine:
     """
-    Sovereign AI Overview Engine (Gemini-style Search Generative Synthesis).
-    Generates structured, authoritative AI summaries, key takeaways, and source
-    citations right at the top of search results without requiring external paid API keys.
+    Sovereign AI Overview Engine (Gemini-powered Search Generative Synthesis).
+    Provides comprehensive, detailed web search syntheses and intelligent interactive chat.
+    Default language is strictly English, with dynamic language adaptation based on user input.
     """
     def __init__(self):
-        pass
+        self.cache = {}
+        self.model_name = "gemini-2.5-flash"
+
+    def _get_api_key(self) -> str:
+        for env_k in ["GEMINI_API_KEY", "AIRA_AI_KEY", "GOOGLE_API_KEY"]:
+            val = os.environ.get(env_k)
+            if val and val.strip():
+                return val.strip()
+
+        try:
+            cfg_path = os.path.expanduser("~/.config/airalang/config.json")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    k = data.get("keys", {}).get("gemini")
+                    if k and k.strip():
+                        return k.strip()
+        except Exception:
+            pass
+
+        return "AIzaSyBiFtmDWFD3ln8uNkGYhqRTVbRSh85b8vA"
+
+    def _call_gemini(self, prompt: str, system_instruction: str = "", timeout: int = 15) -> str:
+        key = self._get_api_key()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={key}"
+        
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        if system_instruction:
+            payload["system_instruction"] = {"parts": [{"text": system_instruction}]}
+
+        body = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+        
+        for attempt in range(2):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            return parts[0].get("text", "").strip()
+            except Exception as e:
+                if attempt == 1:
+                    print(f"[Aira AI] Endpoint call warning: {e}")
+        return ""
 
     def _extract_domain(self, url: str) -> str:
         try:
@@ -22,170 +72,120 @@ class AIOverviewEngine:
         q_lower = q_clean.lower()
         search_results = search_results or []
 
-        # 1. Sovereign Query: Er. Adam Eehan
-        if any(k in q_lower for k in ["adam eehan", "adameehan", "adam", "eehan", "er. adam", "er adam"]):
-            return {
-                "title": "Aira AI Overview",
-                "summary": (
-                    "Er. Adam Eehan is an Indian systems architect, computer engineer, and the Founder & CEO of Aira Group of Technology. "
-                    "He is the principal architect behind major sovereign computing initiatives, including Airlys OS (a 64-bit sovereign "
-                    "desktop Linux operating system), AiraLang (a pure C native systems programming language with direct ELF binary emission), "
-                    "and the sovereign Aira 3 Ultra AI engine."
-                ),
-                "bullets": [
-                    "Founder & CEO of Aira Group of Technology, championing technological sovereignty and user freedom.",
-                    "Architect of Airlys OS S1 Flagship Edition, featuring Linux Zen 6.x and KDE Plasma 6 desktop.",
-                    "Creator of AiraLang S1 Duo, an ultra-fast pure C systems language with direct machine code generation.",
-                    "Pioneer of sovereign, independent intelligence systems operating free from corporate telemetry."
-                ],
-                "sources": [
-                    {"title": "adameehanairagroup (Er. Adam Eehan) · GitHub", "url": "https://github.com/adameehanairagroup", "domain": "github.com"},
-                    {"title": "Aira Group of Technology", "url": "https://airagroup.technology", "domain": "airagroup.technology"},
-                    {"title": "Adam Eehan — Professional Profile", "url": "https://in.linkedin.com/in/adam-eehan-1058133b7", "domain": "linkedin.com"}
-                ]
-            }
+        if q_lower in self.cache:
+            return self.cache[q_lower]
 
-        # 2. Sovereign Query: Airlys OS
-        if "airlys" in q_lower:
-            return {
-                "title": "Aira AI Overview",
-                "summary": (
-                    "Airlys OS S1 is an independent, 64-bit sovereign desktop operating system engineered by Er. Adam Eehan. "
-                    "Built for modern hardware with direct UEFI boot architecture, it delivers exceptional performance "
-                    "and responsiveness by combining a tuned Linux Zen 6.x kernel with a pristine KDE Plasma 6 desktop environment."
-                ),
-                "bullets": [
-                    "Engineered by Er. Adam Eehan for absolute speed, stability, and developer sovereignty.",
-                    "Powered by the Linux Zen 6.x performance kernel and Wayland-native KDE Plasma 6.",
-                    "Features native integration of AiraLang S1 Duo (/usr/bin/airalang) as the primary systems language.",
-                    "Guarantees total user freedom with zero corporate tracking, zero telemetry, and a clean desktop."
-                ],
-                "sources": [
-                    {"title": "AirlysOS S1 Flagship Edition · GitHub", "url": "https://github.com/adameehanairagroup/AirlysOS", "domain": "github.com"},
-                    {"title": "Aira Group Systems Architecture", "url": "https://airagroup.technology", "domain": "airagroup.technology"}
-                ]
-            }
-
-        # 3. Sovereign Query: AiraLang
-        if "airalang" in q_lower:
-            return {
-                "title": "Aira AI Overview",
-                "summary": (
-                    "AiraLang S1 Duo is a high-performance native systems programming language engineered by Er. Adam Eehan. "
-                    "Written in pure C, it features a dual-mode execution architecture: a high-throughput bytecode interpreter "
-                    "and a direct ELF64 machine-code emitter that compiles code into standalone static executables with zero external runtime dependencies."
-                ),
-                "bullets": [
-                    "Direct ELF Machine Code Emitter (-b flag): generates standalone 64-bit binaries without external assemblers.",
-                    "Pure C engine (s1duo): achieves ~35x speedup over legacy interpreters with sub-millisecond execution.",
-                    "Complete systems standard library: built-in crypto (SHA-256), memory canary checks, network sockets, and AI modules.",
-                    "Default systems language integrated natively into Airlys OS S1."
-                ],
-                "sources": [
-                    {"title": "Airalang S1 Duo Engine · GitHub", "url": "https://github.com/adameehanairagroup/Airalang", "domain": "github.com"},
-                    {"title": "Aira Group Language Documentation", "url": "https://airagroup.technology", "domain": "airagroup.technology"}
-                ]
-            }
-
-        # 4. General Queries & Celebrities (Using Knowledge Panel & Search Results)
-        summary_text = ""
-        bullets = []
+        # Gather real web sources
         sources = []
+        if knowledge_panel and knowledge_panel.get("links"):
+            for name, link in knowledge_panel["links"][:2]:
+                sources.append({"title": f"{knowledge_panel.get('title', q_clean)} on {name}", "url": link, "domain": self._extract_domain(link)})
 
-        if knowledge_panel and knowledge_panel.get("description"):
-            desc = knowledge_panel["description"]
-            summary_text = desc
-            title = knowledge_panel.get("title", q_clean)
-            subtitle = knowledge_panel.get("subtitle", "")
-            
-            # Formulate structured takeaways
-            if subtitle:
-                bullets.append(f"Entity: {title} — {subtitle}.")
-            
-            # Split description into sentences for key bullet highlights
-            sentences = [s.strip() for s in re.split(r'\. |\.\n', desc) if len(s.strip()) > 15]
-            for s in sentences[1:4]:
-                bullets.append(s.rstrip(".") + ".")
-            
-            if knowledge_panel.get("links"):
-                for name, link in knowledge_panel["links"][:2]:
-                    sources.append({"title": f"{title} on {name}", "url": link, "domain": self._extract_domain(link)})
-
-        # Augment with web results if needed
         for r in search_results:
-            if len(sources) >= 3:
+            if len(sources) >= 4:
                 break
             url = r.get("url", "")
-            title = r.get("title", "")
-            domain = self._extract_domain(url)
             if not any(s["url"] == url for s in sources):
-                sources.append({"title": title, "url": url, "domain": domain})
+                sources.append({"title": r.get("title", ""), "url": url, "domain": self._extract_domain(url)})
 
-            if not summary_text and r.get("snippet"):
-                summary_text = r["snippet"]
+        # Build context from web search & knowledge graph
+        context_lines = []
+        if knowledge_panel:
+            context_lines.append(f"Entity: {knowledge_panel.get('title')} ({knowledge_panel.get('subtitle', '')})")
+            if knowledge_panel.get("description"):
+                context_lines.append(f"Description: {knowledge_panel.get('description')}")
+            for k, v in knowledge_panel.get("attributes", []):
+                context_lines.append(f"{k}: {v}")
 
-        if not summary_text and search_results:
-            top_snippet = search_results[0].get("snippet", "")
-            summary_text = f"Overview for {q_clean}: {top_snippet}"
+        for r in search_results[:8]:
+            snip = r.get("snippet", "")
+            if snip:
+                context_lines.append(f"- {r.get('title')}: {snip}")
 
-        if not bullets and search_results:
-            for r in search_results[:3]:
-                snip = r.get("snippet", "")
-                if snip and len(snip) > 20:
-                    bullets.append(snip[:140].rstrip(".") + "...")
+        context_text = "\n".join(context_lines)
+
+        # Prompt for English Overview synthesis (Detailed, comprehensive, neutral)
+        sys_inst = (
+            "You are AIRA Search Generative Engine. "
+            "Your task is to synthesize the web search results into an authoritative, detailed, and comprehensive AI Overview (Google SGE / Gemini style). "
+            "DEFAULT LANGUAGE: You MUST write the overview strictly in ENGLISH.\n"
+            "Style: Objective, informative, fact-based, rich, and well-structured. Do NOT output promotional slogans or bias. "
+            "Format your response strictly as:\n"
+            "SUMMARY: <A thorough, comprehensive overview paragraph explaining the subject with depth (3 to 4 sentences)>\n"
+            "BULLETS:\n"
+            "- <Detailed key highlight or factual finding 1>\n"
+            "- <Detailed key highlight or factual finding 2>\n"
+            "- <Detailed key highlight or factual finding 3>\n"
+            "- <Detailed key highlight or factual finding 4>\n"
+            "No preface, no disclaimers."
+        )
+
+        prompt = f"Search Query: {q_clean}\n\nWeb Search & Knowledge Graph Context:\n{context_text}"
+        ai_resp = self._call_gemini(prompt, system_instruction=sys_inst, timeout=6)
+
+        summary_text = ""
+        bullets = []
+
+        if ai_resp:
+            m_sum = re.search(r"SUMMARY:\s*(.*?)(?=\nBULLETS:|\n\n|$)", ai_resp, re.DOTALL)
+            summary_text = m_sum.group(1).strip() if m_sum else ai_resp.split("\n")[0]
+            bullets = [b.lstrip("-*• ").strip() for b in ai_resp.split("BULLETS:")[-1].split("\n") if b.strip().startswith(("-", "*", "•"))]
+
+        # Graceful fallback if offline
+        if not summary_text:
+            if knowledge_panel and knowledge_panel.get("description"):
+                summary_text = knowledge_panel["description"]
+                sentences = [s.strip() for s in re.split(r'\. |\.\n', summary_text) if len(s.strip()) > 15]
+                bullets = [s.rstrip(".") + "." for s in sentences[1:5]]
+            elif search_results:
+                summary_text = search_results[0].get("snippet", f"Search results for {q_clean}.")
+                for r in search_results[:4]:
+                    s = r.get("snippet", "")
+                    if s:
+                        bullets.append(s[:160].rstrip(".") + "...")
 
         if not summary_text:
             return None
 
-        return {
+        overview = {
             "title": "Aira AI Overview",
             "summary": summary_text,
-            "bullets": bullets[:3],
-            "sources": sources[:3]
+            "bullets": bullets[:4],
+            "sources": sources[:4]
         }
 
+        self.cache[q_lower] = overview
+        return overview
+
     def answer_chat(self, query: str, user_prompt: str) -> str:
-        q_lower = query.lower().strip()
-        p_lower = user_prompt.lower().strip()
-
-        # Boss / Er. Adam Eehan
-        if any(k in q_lower or k in p_lower for k in ["adam eehan", "adam", "eehan", "founder", "ceo"]):
-            if any(w in p_lower for w in ["vision", "swapnam", "future", "goal", "aim"]):
-                return (
-                    "Er. Adam Eehan-te core vision paranjaal, corporate tech monopolies-inte dependency illathe, "
-                    "100% sovereign aayi ninnu operate cheyyunna complete computing ecosystem build cheyyukayennathaanu. "
-                    "User freedom, zero corporate telemetry, and absolute engineering power — ithaanu foundation!"
-                )
-            elif any(w in p_lower for w in ["tell me more", "explain", "who", "aara"]):
-                return (
-                    "Er. Adam Eehan Aira Group of Technology-ude Founder & CEO aanu. Adheham aanu Airlys OS (64-bit sovereign Linux OS), "
-                    "AiraLang S1 Duo (pure C native language with direct ELF64 compiler), and Aira 3 Ultra AI engine engineer cheythathe."
-                )
-            return (
-                "Er. Adam Eehan Aira Group of Technology-ude Founder & CEO aanu. Sovereign computing ecosystems architect cheythu "
-                "pioneering innovations konduvarunnu. Boss-inte real GitHub profile inspect cheyyaam: https://github.com/adameehanairagroup"
-            )
-
-        # Airlys OS
-        if "airlys" in q_lower or "airlys" in p_lower:
-            return (
-                "Airlys OS S1 Flagship Edition Linux Zen 6.x performance kernel, KDE Plasma 6 desktop, direct UEFI boot, "
-                "and native AiraLang integration ulla sovereign operating system aanu. Bloatware-um telemetry-yum zero percent aanu!"
-            )
-
-        # AiraLang
-        if "airalang" in q_lower or "airalang" in p_lower:
-            return (
-                "AiraLang S1 Duo pure C-il engineer cheytha high-speed systems language aanu. "
-                "Standalone static ELF64 machine binaries direct aayi emit cheyyunna compiler (-b) und. Python interpreter-inekal ~35x speedup tharum!"
-            )
-
-        # General Topics (Celebrities, Web Tech, Sports, etc.)
-        if "who" in p_lower or "profile" in p_lower:
-            return f"\"{query}\"-ne kurichu Aira Knowledge Graph-il ulla factual profile details summary-il njan thalpparathe summarise cheythittund. Athil ninnu kooduthal specific achievements ariyano?"
-
-        return (
-            f"\"{query}\"-ne kurichu Aira AI Analysis: {user_prompt} enna chodyathinu utharam — "
-            f"ee vishayathe kurichu live web index-il ninnu verify cheytha mukhyamaaya points overview card-il kandallo. "
-            f"Kooduthal detailed questions chodicho, njan parayaam!"
+        """
+        Interactive follow-up chat.
+        Dynamically detects user language:
+        - If user asks in Manglish/Malayalam, replies in natural Manglish.
+        - If user asks in English, replies in English.
+        - Delivers detailed, comprehensive replies based on the real web findings and knowledge.
+        - Neutral and factual, no forced corporate loyalty slogans.
+        """
+        sys_inst = (
+            "You are AIRA, an intelligent AI search assistant integrated into Aira Search.\n\n"
+            "LANGUAGE DETECTION RULE:\n"
+            "1. Analyze the user prompt's language:\n"
+            "   - If the user writes in Malayalam or Manglish (e.g. 'aaranu', 'enthaanu', 'parayamo', 'nook', 'njan'), reply naturally in clear, friendly Manglish (Malayalam in English alphabet). NEVER use Malayalam script (മലയാളം ലിപി വേണ്ട, strictly Manglish).\n"
+            "   - If the user writes in English, reply in fluent, professional English.\n"
+            "   - Match whatever language the user initiates.\n"
+            "2. RESPONSE DEPTH: Give comprehensive, detailed, informative answers ('valiya replays') incorporating facts from the search topic, internet sources, and world knowledge.\n"
+            "3. OBJECTIVITY & TONE: Maintain a helpful, intelligent, objective tone. Do not inject forced company loyalty slogans or artificial praise into search results.\n"
+            "4. KNOWN FACTS ABOUT ER. ADAM EEHAN: If asked about Er. Adam Eehan, he is an Indian Software Engineer, AI Architect & AI Engineer, and Founder of Aira Group of Technology (Wikidata: Q141755677, website: https://adameehan.vercel.app), creator of Airlys OS and AiraLang.\n"
+            "5. NO corporate disclaimers or repetitive boilerplates."
         )
+
+        prompt = f"Topic context: {query}\nUser question: {user_prompt}\nAira:"
+        answer = self._call_gemini(prompt, system_instruction=sys_inst, timeout=9)
+
+        if not answer:
+            return (
+                f"I have summarized the available web results for \"{query}\". "
+                f"Please try asking your question again."
+            )
+
+        return answer

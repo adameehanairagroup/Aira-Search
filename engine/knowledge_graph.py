@@ -6,17 +6,18 @@ import re
 class KnowledgeGraph:
     """
     Google-style Knowledge Graph and Identity Card provider.
-    Provides official identity cards for Er. Adam Eehan, sovereign systems,
-    and dynamically resolves Wikipedia Knowledge Graph entities for celebrities,
-    public figures, and notable organizations worldwide.
+    Provides official identity cards for Er. Adam Eehan (Wikidata: Q141755677),
+    sovereign systems, and dynamically resolves verified Wikidata & Wikipedia
+    knowledge cards for celebrities, public figures, and notable organizations.
     """
     def __init__(self):
         self.cache = {}
+        self.headers = {"User-Agent": "AiraSearchBot/1.0 (+https://airagroup.technology)"}
 
     def _resolve_canonical_title(self, query: str) -> str:
         clean = query.strip()
         url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={urllib.parse.quote(clean)}&limit=1&namespace=0&format=json"
-        req = urllib.request.Request(url, headers={"User-Agent": "AiraSearchBot/1.0 (+https://airagroup.technology)"})
+        req = urllib.request.Request(url, headers=self.headers)
         try:
             with urllib.request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -26,41 +27,65 @@ class KnowledgeGraph:
             pass
         return clean
 
+    def _lookup_wikidata(self, query: str) -> dict:
+        url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={urllib.parse.quote(query)}&language=en&limit=1&format=json"
+        req = urllib.request.Request(url, headers=self.headers)
+        try:
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data.get("search"):
+                    item = data["search"][0]
+                    return {
+                        "id": item.get("id"),
+                        "label": item.get("label"),
+                        "description": item.get("description"),
+                        "url": f"https://www.wikidata.org/wiki/{item.get('id')}"
+                    }
+        except Exception:
+            pass
+        return None
+
     def get_panel(self, query: str):
-        q_lower = query.strip().lower()
+        q_clean = query.strip()
+        q_lower = q_clean.lower()
 
         # Check Cache
         if q_lower in self.cache:
             return self.cache[q_lower]
 
-        # 1. Identity Card for Er. Adam Eehan (Founder & CEO, Aira Group of Technology)
+        # 1. Identity Card for Er. Adam Eehan (Wikidata: Q141755677)
         if any(k in q_lower for k in ["adam eehan", "adameehan", "adam", "eehan", "er. adam", "er adam"]):
             panel = {
                 "type": "founder",
                 "title": "Er. Adam Eehan",
-                "subtitle": "Founder & CEO, Aira Group of Technology • Systems Architect",
+                "subtitle": "Indian Software Engineer, AI Architect & AI Engineer • Founder of Aira Group of Technology",
                 "verified": True,
                 "image": "/static/author.png",
                 "description": (
-                    "Er. Adam Eehan is an Indian computer systems architect, software engineer, "
-                    "and technology entrepreneur. He is the Founder & CEO of Aira Group of Technology, "
-                    "pioneering sovereign computing ecosystems including Airlys OS (64-bit sovereign Linux OS), "
-                    "AiraLang (pure C native systems programming language with direct ELF emitter), "
-                    "and Sovereign AI Aira 3 Ultra."
+                    "Er. Adam Eehan is an Indian Software Engineer, AI Architect & AI Engineer, and the Founder & CEO of Aira Group of Technology "
+                    "(Wikidata: Q141755677). He specializes in sovereign systems architecture, zero-dependency computing environments, and compiler "
+                    "design, having engineered Airlys OS (64-bit sovereign desktop Linux OS), AiraLang (pure C native systems programming language "
+                    "with direct ELF emission), and Sovereign AI Aira 3 Ultra."
                 ),
                 "attributes": [
-                    ("Location", "Kerala, India"),
+                    ("Wikidata Entity", "Q141755677"),
                     ("Role", "Founder & Chief Executive Officer"),
                     ("Organization", "Aira Group of Technology"),
+                    ("Official Website", "https://adameehan.vercel.app"),
+                    ("Citizenship", "India"),
+                    ("Born", "2006 (Kerala, India)"),
                     ("Key Innovations", "Airlys OS S1, AiraLang S1 Duo, Aira Search"),
                     ("AI Engine", "Sovereign Aira 3 Ultra (Engine v3.6)"),
-                    ("Core Philosophy", "Technological Sovereignty & User Freedom")
+                    ("Philosophy", "Technological Sovereignty & User Freedom")
                 ],
                 "links": [
+                    ("Official Website", "https://adameehan.vercel.app"),
+                    ("Wikidata Profile", "https://www.wikidata.org/wiki/Q141755677"),
                     ("GitHub Profile", "https://github.com/adameehanairagroup"),
-                    ("LinkedIn Profile", "https://in.linkedin.com/in/adam-eehan-1058133b7"),
-                    ("Airlys OS", "https://github.com/adameehanairagroup/AirlysOS"),
-                    ("AiraLang", "https://github.com/adameehanairagroup/Airalang")
+                    ("GitHub Org", "https://github.com/airagroupoftechnology"),
+                    ("LinkedIn", "https://in.linkedin.com/in/adam-eehan-1058133b7"),
+                    ("GitLab", "https://gitlab.com/adameehantech"),
+                    ("Hugging Face", "https://huggingface.co/adameehan")
                 ]
             }
             self.cache[q_lower] = panel
@@ -88,7 +113,7 @@ class KnowledgeGraph:
                 ],
                 "links": [
                     ("GitHub Repository", "https://github.com/adameehanairagroup/AirlysOS"),
-                    ("Aira Group", "https://airagroup.technology")
+                    ("Aira Group", "https://github.com/airagroupoftechnology")
                 ]
             }
             self.cache[q_lower] = panel
@@ -109,24 +134,24 @@ class KnowledgeGraph:
                 ),
                 "attributes": [
                     ("Designer", "Er. Adam Eehan"),
-                    ("Implementation", "Pure C (s1duo) with direct ELF64 ARM64/x86_64 emitter"),
+                    ("Implementation", "Pure C (s1duo) with direct ELF64 emitter"),
                     ("Compilation Target", "Direct Standalone Linux ELF Binaries"),
                     ("Speed Benchmark", "~35x faster than legacy interpreter"),
                     ("Host OS", "Airlys OS / Linux / Android Termux")
                 ],
                 "links": [
                     ("GitHub Repository", "https://github.com/adameehanairagroup/Airalang"),
-                    ("Aira Group", "https://airagroup.technology")
+                    ("Aira Group", "https://github.com/airagroupoftechnology")
                 ]
             }
             self.cache[q_lower] = panel
             return panel
 
-        # 4. Dynamic Wikipedia Knowledge Graph for Celebrities & Public Entities
+        # 4. Dynamic Wikidata & Wikipedia Knowledge Graph for Celebrities & Public Figures
         canonical = self._resolve_canonical_title(query)
         wiki_title = canonical.replace(" ", "_")
         url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(wiki_title)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "AiraSearchBot/1.0 (+https://airagroup.technology)"})
+        req = urllib.request.Request(url, headers=self.headers)
         try:
             with urllib.request.urlopen(req, timeout=4) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -138,20 +163,31 @@ class KnowledgeGraph:
 
                 # If this is a valid notable person or entity with sufficient info
                 if extract and len(extract) > 40:
+                    # Also lookup Wikidata entity ID
+                    wd_item = self._lookup_wikidata(title or canonical)
+
+                    attrs = [
+                        ("Category", desc.capitalize() if desc else "Encyclopedia Entity")
+                    ]
+                    links = [
+                        ("Wikipedia", page_url)
+                    ]
+
+                    if wd_item:
+                        attrs.append(("Wikidata ID", wd_item["id"]))
+                        links.append(("Wikidata", wd_item["url"]))
+                        if not desc and wd_item.get("description"):
+                            desc = wd_item["description"]
+
                     panel = {
-                        "type": "celebrity" if any(w in desc.lower() for w in ["born", "player", "actor", "politician", "singer", "entrepreneur", "scientist", "author", "footballer", "musician"]) else "entity",
+                        "type": "celebrity" if any(w in (desc or "").lower() for w in ["born", "player", "actor", "politician", "singer", "entrepreneur", "scientist", "author", "footballer", "musician", "engineer"]) else "entity",
                         "title": title,
                         "subtitle": desc or "Notable Global Entity",
                         "verified": True,
                         "image": thumb,
                         "description": extract,
-                        "attributes": [
-                            ("Category", desc.capitalize() if desc else "Encyclopedia Entity"),
-                            ("Source", "Wikipedia Knowledge Graph")
-                        ],
-                        "links": [
-                            ("Wikipedia Profile", page_url)
-                        ]
+                        "attributes": attrs,
+                        "links": links
                     }
                     self.cache[q_lower] = panel
                     return panel

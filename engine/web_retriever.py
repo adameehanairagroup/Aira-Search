@@ -10,9 +10,8 @@ import time
 class WebRetriever:
     """
     Sovereign Federated Web Retriever.
-    Searches the real internet (independent websites, blogs, Vercel/Netlify apps,
-    developer platforms, corporate portals, and verified documentation).
-    Strictly filters out irrelevant Wikipedia noise so genuine web results shine!
+    Searches the real internet across DuckDuckGo, Bing, GitHub, and verified documentation
+    (independent websites, developer platforms, Vercel/Netlify apps, corporate portals, blogs).
     """
     def __init__(self, cache_ttl_seconds=900):
         self.cache = {}
@@ -22,6 +21,13 @@ class WebRetriever:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9"
         }
+        self.blocked_domains = [
+            "xvideos", "porn", "xxx", "sex", "adult", "erotic", "gambling", "casino"
+        ]
+
+    def _is_safe(self, url: str, text: str = "") -> bool:
+        low = (url + " " + text).lower()
+        return not any(b in low for b in self.blocked_domains)
 
     def _decode_bing_url(self, href: str) -> str:
         href = html.unescape(href)
@@ -38,11 +44,52 @@ class WebRetriever:
                 pass
         return href
 
-    def search_bing(self, query: str, max_results: int = 15):
+    def search_duckduckgo(self, query: str, max_results: int = 15):
+        """Searches live DuckDuckGo HTML for real internet results worldwide."""
         results = []
-        url = f"https://www.bing.com/search?q={urllib.parse.quote(query)}&count=20"
+        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
         try:
             req = urllib.request.Request(url, headers=self.browser_headers)
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                page = resp.read().decode("utf-8", errors="ignore")
+
+            raw_results = page.split("<div class=\"result results_links results_links_deep web-result")
+            for section in raw_results[1:]:
+                m_title = re.search(r"<a[^>]+class=\"result__a\"[^>]+href=\"([^\"]+)\"[^>]*>(.*?)</a>", section, re.DOTALL)
+                m_snip = re.search(r"<a[^>]+class=\"result__snippet\"[^>]*>(.*?)</a>", section, re.DOTALL)
+                if m_title:
+                    raw_href = m_title.group(1)
+                    actual_url = raw_href
+                    if "uddg=" in raw_href:
+                        actual_url = urllib.parse.unquote(raw_href.split("uddg=")[1].split("&")[0])
+                    if not actual_url.startswith("http") or "duckduckgo.com" in actual_url:
+                        continue
+                    
+                    title = html.unescape(re.sub(r"<[^>]+>", "", m_title.group(2))).strip()
+                    snip = html.unescape(re.sub(r"<[^>]+>", "", m_snip.group(1))).strip() if m_snip else ""
+                    
+                    if not self._is_safe(actual_url, title + " " + snip):
+                        continue
+
+                    results.append({
+                        "title": title,
+                        "url": actual_url,
+                        "snippet": snip or f"Visit {actual_url} for details."
+                    })
+                    if len(results) >= max_results:
+                        break
+        except Exception:
+            pass
+        return results
+
+    def search_bing(self, query: str, max_results: int = 15):
+        """Searches Bing with strict safe search enabled."""
+        results = []
+        url = f"https://www.bing.com/search?q={urllib.parse.quote(query)}&count=20&adlt=strict"
+        headers = dict(self.browser_headers)
+        headers["Cookie"] = "SRCHHPGUSR=ADLT=STRICT;"
+        try:
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=5) as resp:
                 page = resp.read().decode("utf-8", errors="ignore")
 
@@ -56,6 +103,10 @@ class WebRetriever:
                         continue
                     title = html.unescape(re.sub(r'<[^>]+>', '', tm.group(2))).strip()
                     snippet = html.unescape(re.sub(r'<[^>]+>', '', sm.group(1))).strip() if sm else ""
+
+                    if not self._is_safe(actual_url, title + " " + snippet):
+                        continue
+
                     results.append({
                         "title": title,
                         "url": actual_url,
@@ -68,6 +119,7 @@ class WebRetriever:
         return results
 
     def search_github(self, query: str, max_results: int = 4):
+        """Searches GitHub repositories and users."""
         results = []
         q_clean = query.strip()
         # 1. Search Repositories
@@ -89,7 +141,7 @@ class WebRetriever:
         except Exception:
             pass
 
-        # 2. Search Users (if query seems like a developer name)
+        # 2. Search Users (if query seems like a developer or author name)
         if any(w in q_clean.lower() for w in ["adam", "eehan", "developer", "creator", "author", "engineer"]):
             try:
                 user_url = f"https://api.github.com/search/users?q={urllib.parse.quote(q_clean)}&per_page=2"
@@ -98,7 +150,7 @@ class WebRetriever:
                     udata = json.loads(resp.read().decode("utf-8", errors="ignore"))
                     for u in udata.get("items", []):
                         results.append({
-                            "title": f"{u.get('login')} (GitHub Developer Profile)",
+                            "title": f"{u.get('login')} (GitHub Profile)",
                             "url": u.get("html_url"),
                             "snippet": f"Official GitHub developer profile for {u.get('login')}."
                         })
@@ -108,10 +160,7 @@ class WebRetriever:
         return results
 
     def search_wikipedia_strict(self, query: str):
-        """
-        Only returns Wikipedia if the article title is an EXACT or highly relevant match.
-        Never injects random, loose, or unrelated Wikipedia articles!
-        """
+        """Only returns Wikipedia if the article title is an EXACT or highly relevant match."""
         results = []
         q_clean = query.strip().lower()
         try:
@@ -124,7 +173,6 @@ class WebRetriever:
                     snippet = data[2][0] if len(data[2]) > 0 else ""
                     page_url = data[3][0]
 
-                    # Strict check: is query tightly related to the title?
                     t_lower = title.lower()
                     if q_clean in t_lower or t_lower in q_clean or all(w in t_lower for w in q_clean.split() if len(w) > 3):
                         results.append({
@@ -145,31 +193,39 @@ class WebRetriever:
             if now < expires:
                 return res
 
-        # Run independent fetchers in parallel
-        t_bing = asyncio.to_thread(self.search_bing, query, 15)
+        # Run multi-engine search in parallel: DDG, Bing, GitHub, Wikipedia
+        t_ddg = asyncio.to_thread(self.search_duckduckgo, query, 15)
+        t_bing = asyncio.to_thread(self.search_bing, query, 10)
         t_gh = asyncio.to_thread(self.search_github, query, 3)
         t_wiki = asyncio.to_thread(self.search_wikipedia_strict, query)
 
-        res_bing, res_gh, res_wiki = await asyncio.gather(t_bing, t_gh, t_wiki)
+        res_ddg, res_bing, res_gh, res_wiki = await asyncio.gather(t_ddg, t_bing, t_gh, t_wiki)
 
         seen_urls = set()
         merged = []
 
-        # 1. Real internet web pages (Bing index: self-hosted, blogs, Vercel/Netlify apps, company sites)
+        # 1. Primary real web results from DuckDuckGo (Global web: forums, Google Cloud Community, Vercel, blogs, independent sites)
+        for item in res_ddg:
+            url = item.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                merged.append(item)
+
+        # 2. Bing web results
         for item in res_bing:
             url = item.get("url")
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 merged.append(item)
 
-        # 2. Real developer repositories & profiles from GitHub
+        # 3. GitHub repositories & developer profiles
         for item in res_gh:
             url = item.get("url")
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 merged.append(item)
 
-        # 3. Exactly matched Wikipedia entry (at most 1, placed at end or natural rank)
+        # 4. Strict Wikipedia match (at most 1)
         for item in res_wiki:
             url = item.get("url")
             if url and url not in seen_urls:

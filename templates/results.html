@@ -362,29 +362,59 @@
         }
 
         .user-bubble {
-            background: linear-gradient(135deg, #00d2ff, #3a86ff);
-            color: #ffffff;
-            border-bottom-right-radius: 4px;
+            background: rgba(157, 78, 221, 0.12);
+            color: var(--text-color);
+            border: 1px solid rgba(157, 78, 221, 0.3);
+            border-radius: 16px;
+            padding: 7px 14px;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         .aira-bubble {
-            background: var(--bg-color);
+            background: transparent;
             color: var(--text-color);
-            border: 1px solid var(--bar-border);
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: none;
+            box-shadow: none;
+            padding: 4px 0;
+            font-size: 15px;
+            line-height: 1.65;
+            max-width: 100%;
         }
 
-        .chat-msg.thinking .aira-bubble {
-            color: #9d4edd;
-            font-style: italic;
-            animation: pulse 1.4s infinite;
+        .gemini-thinking {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 2px;
         }
 
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
+        .gemini-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d2ff, #9d4edd, #f72585);
+            animation: geminiPulse 1.4s ease-in-out infinite;
+        }
+
+        .gemini-dot:nth-child(2) {
+            animation-delay: 0.22s;
+        }
+
+        .gemini-dot:nth-child(3) {
+            animation-delay: 0.44s;
+        }
+
+        @keyframes geminiPulse {
+            0%, 100% {
+                transform: scale(0.7);
+                opacity: 0.35;
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 1;
+                filter: drop-shadow(0 0 6px rgba(157, 78, 221, 0.7));
+            }
         }
 
         .ai-input-row {
@@ -812,9 +842,9 @@
                     </div>
 
                     <div class="ai-quick-chips">
-                        <button type="button" class="ai-chip-btn" onclick="quickAsk('Tell me more details about this')">✨ Tell me more</button>
-                        <button type="button" class="ai-chip-btn" onclick="quickAsk('What are the key technical takeaways?')">⚡ Key takeaways</button>
-                        <button type="button" class="ai-chip-btn" onclick="quickAsk('Who is behind this?')">👤 Who is behind this?</button>
+                        <button type="button" class="ai-chip-btn" onclick="quickAsk('Tell me more details about this')">Tell me more</button>
+                        <button type="button" class="ai-chip-btn" onclick="quickAsk('What are the key technical takeaways?')">Key takeaways</button>
+                        <button type="button" class="ai-chip-btn" onclick="quickAsk('Who is behind this?')">Who is behind this?</button>
                     </div>
                 </div>
 
@@ -948,11 +978,16 @@
         thread.appendChild(userBubble);
         input.value = "";
 
-        // Add thinking indicator
+        // Add thinking indicator (Gemini AI Studio Playground animation)
         const thinkingBubble = document.createElement("div");
         thinkingBubble.className = "chat-msg aira-msg thinking";
         thinkingBubble.id = "aira-thinking";
-        thinkingBubble.innerHTML = `<span class="chat-bubble aira-bubble">⚡ Aira is thinking...</span>`;
+        thinkingBubble.innerHTML = `
+            <div class="gemini-thinking">
+                <span class="gemini-dot"></span>
+                <span class="gemini-dot"></span>
+                <span class="gemini-dot"></span>
+            </div>`;
         thread.appendChild(thinkingBubble);
         thread.scrollTop = thread.scrollHeight;
 
