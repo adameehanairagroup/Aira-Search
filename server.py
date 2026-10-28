@@ -27,24 +27,38 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 
 START_TIME = time.time()
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def render_template(template_name: str, request: Request, context: dict = None):
+    if context is None:
+        context = {}
+    context["request"] = request
+    try:
+        # Modern Starlette (FastAPI >= 0.110.0 / Starlette >= 0.36.0)
+        return templates.TemplateResponse(request=request, name=template_name, context=context)
+    except TypeError:
+        # Legacy Starlette signature
+        return templates.TemplateResponse(template_name, context)
 
-@app.get("/search", response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def home(request: Request):
+    return render_template("index.html", request)
+
+@app.api_route("/search", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def search(request: Request, q: str = Query("", alias="q")):
     q_clean = q.strip()
     if not q_clean:
-        return templates.TemplateResponse("index.html", {"request": request})
+        return render_template("index.html", request)
 
     search_data = indexer.search(q_clean, top_k=25)
-    return templates.TemplateResponse("results.html", {
-        "request": request,
+    return render_template("results.html", request, {
         "query": q_clean,
         "results": search_data["results"],
         "total": search_data["total"],
         "time_ms": search_data["time_ms"]
     })
+
+@app.api_route("/healthz", methods=["GET", "HEAD"])
+async def healthz():
+    return {"status": "ok", "service": "aira-search"}
 
 @app.get("/api/search")
 async def api_search(q: str = Query(..., alias="q"), limit: int = 20):
