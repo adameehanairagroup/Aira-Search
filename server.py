@@ -72,53 +72,29 @@ async def search(request: Request, background_tasks: BackgroundTasks, q: str = Q
 
     start_t = time.perf_counter()
 
-    # 1. Sovereign Local BM25 Index Search
-    local_data = indexer.search(q_clean, top_k=15)
-    local_results = local_data.get("results", [])
+    # 1. Real Worldwide Web Search (Bing, Wikipedia, GitHub)
+    web_results = await retriever.search_live(q_clean, max_results=20)
 
-    sovereign_results = []
-    for r in local_results:
-        if r.get("score", 0) > 2.0 or any(k in q_clean.lower() for k in ["airlys", "aira", "adam", "eehan"]):
-            sovereign_results.append(r.copy())
-
-    # 2. Live Web Retrieval across Wikipedia, Bing, and GitHub
-    web_results = await retriever.search_live(q_clean, max_results=15)
-
-    # 3. Fetch Google-Style Identity Card / Knowledge Graph
+    # 2. Google-Style Identity Card / Knowledge Graph
     knowledge_panel = kg.get_panel(q_clean)
 
-    # 4. Merge & Deduplicate
+    # 3. Clean real organic results (only real results from the live web)
     seen_urls = set()
     combined = []
 
-    for item in sovereign_results:
-        url = item.get("url")
-        if url not in seen_urls:
-            seen_urls.add(url)
-            item.pop("source", None)
-            combined.append(item)
-
     for item in web_results:
         url = item.get("url")
-        if url not in seen_urls:
+        if url and url not in seen_urls:
             seen_urls.add(url)
             item.pop("source", None)
             combined.append(item)
 
-    if len(combined) < 5:
-        for item in local_results:
-            url = item.get("url")
-            if url not in seen_urls:
-                seen_urls.add(url)
-                item.pop("source", None)
-                combined.append(item)
-
-    # 5. Generate ✨ Aira AI Overview (Gemini-style Generative Summary)
+    # 4. Generate ✨ Aira AI Overview (Gemini-style Generative Summary)
     ai_overview = ai_engine.generate_overview(q_clean, search_results=combined, knowledge_panel=knowledge_panel)
 
     elapsed_ms = round((time.perf_counter() - start_t) * 1000, 1)
 
-    # Auto-index web results in background
+    # Auto-index real web results in background into local database
     if web_results:
         background_tasks.add_task(auto_index_results, web_results)
 
@@ -142,23 +118,16 @@ async def api_search(background_tasks: BackgroundTasks, q: str = Query(..., alia
         return JSONResponse({"results": [], "total": 0, "time_ms": 0.0})
 
     start_t = time.perf_counter()
-    local_data = indexer.search(q_clean, top_k=limit)
     web_results = await retriever.search_live(q_clean, max_results=limit)
     knowledge_panel = kg.get_panel(q_clean)
 
     seen_urls = set()
     combined = []
-    for item in local_data.get("results", []):
-        if item.get("score", 0) > 2.0 or any(k in q_clean.lower() for k in ["airlys", "aira", "adam", "eehan"]):
-            item_copy = item.copy()
-            item_copy.pop("source", None)
-            seen_urls.add(item["url"])
-            combined.append(item_copy)
-
     for item in web_results:
-        if item["url"] not in seen_urls:
+        url = item.get("url")
+        if url and url not in seen_urls:
             item.pop("source", None)
-            seen_urls.add(item["url"])
+            seen_urls.add(url)
             combined.append(item)
 
     ai_overview = ai_engine.generate_overview(q_clean, search_results=combined, knowledge_panel=knowledge_panel)

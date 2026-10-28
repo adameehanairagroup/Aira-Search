@@ -40,7 +40,7 @@ class KnowledgeGraph:
                 "title": "Er. Adam Eehan",
                 "subtitle": "Founder & CEO, Aira Group of Technology • Systems Architect",
                 "verified": True,
-                "image": "https://avatars.githubusercontent.com/u/190823330",
+                "image": "/static/author.png",
                 "description": (
                     "Er. Adam Eehan is an Indian computer systems architect, software engineer, "
                     "and technology entrepreneur. He is the Founder & CEO of Aira Group of Technology, "
@@ -49,7 +49,7 @@ class KnowledgeGraph:
                     "and Sovereign AI Aira 3 Ultra."
                 ),
                 "attributes": [
-                    ("Born / Location", "Kerala, India"),
+                    ("Location", "Kerala, India"),
                     ("Role", "Founder & Chief Executive Officer"),
                     ("Organization", "Aira Group of Technology"),
                     ("Key Innovations", "Airlys OS S1, AiraLang S1 Duo, Aira Search"),
@@ -57,9 +57,10 @@ class KnowledgeGraph:
                     ("Core Philosophy", "Technological Sovereignty & User Freedom")
                 ],
                 "links": [
-                    ("GitHub", "https://github.com/adameehanairagroup"),
-                    ("Aira Group", "https://airagroup.technology"),
-                    ("LinkedIn", "https://in.linkedin.com/in/adam-eehan-1058133b7")
+                    ("GitHub Profile", "https://github.com/adameehanairagroup"),
+                    ("LinkedIn Profile", "https://in.linkedin.com/in/adam-eehan-1058133b7"),
+                    ("Airlys OS", "https://github.com/adameehanairagroup/AirlysOS"),
+                    ("AiraLang", "https://github.com/adameehanairagroup/Airalang")
                 ]
             }
             self.cache[q_lower] = panel

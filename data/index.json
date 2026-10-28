@@ -1,59 +1,7 @@
 {
-  "total_docs": 4,
-  "avg_doc_length": 32.0,
-  "documents": {
-    "1": {
-      "id": 1,
-      "url": "https://airagroup.technology",
-      "title": "Aira Group of Technology — Sovereign Engineering & Tomorrow's Computing",
-      "snippet": "Aira Group of Technology is a sovereign technology conglomerate founded by Er. Adam Eehan. Pioneering Airlys OS, AiraLang, and sovereign AI systems.",
-      "indexed_at": 1793181211.0
-    },
-    "2": {
-      "id": 2,
-      "url": "https://github.com/adameehanairagroup/AirlysOS",
-      "title": "Airlys OS S1 — 64-Bit Sovereign Linux Operating System",
-      "snippet": "Airlys OS S1 Flagship Edition engineered by Er. Adam Eehan. Linux Zen 6.x, KDE Plasma 6, direct UEFI boot for modern physical hardware with zero corporate telemetry.",
-      "indexed_at": 1793181211.0
-    },
-    "3": {
-      "id": 3,
-      "url": "https://github.com/adameehanairagroup/Airalang",
-      "title": "AiraLang S1 Duo — Pure C Native Systems Programming Language",
-      "snippet": "AiraLang S1 Duo: World's first true AI-native systems language engineered by Er. Adam Eehan. Pure C compiler with direct ELF64 machine code emission.",
-      "indexed_at": 1793181211.0
-    },
-    "4": {
-      "id": 4,
-      "url": "https://github.com/adameehanairagroup",
-      "title": "Er. Adam Eehan (adameehanairagroup) — Systems Architect & Founder",
-      "snippet": "Official GitHub profile of Er. Adam Eehan, Founder & CEO of Aira Group of Technology. Leading Airlys OS, AiraLang, and sovereign intelligence.",
-      "indexed_at": 1793181211.0
-    }
-  },
-  "doc_lengths": {
-    "1": 30,
-    "2": 35,
-    "3": 32,
-    "4": 31
-  },
-  "index": {
-    "aira": [[1, 2], [2, 1], [3, 2], [4, 1]],
-    "group": [[1, 2], [4, 1]],
-    "technology": [[1, 2], [4, 1]],
-    "sovereign": [[1, 2], [2, 1], [4, 1]],
-    "adam": [[1, 1], [2, 1], [3, 1], [4, 2]],
-    "eehan": [[1, 1], [2, 1], [3, 1], [4, 2]],
-    "airlys": [[1, 1], [2, 2], [4, 1]],
-    "os": [[1, 1], [2, 2], [4, 1]],
-    "airalang": [[1, 1], [3, 2], [4, 1]],
-    "linux": [[2, 2]],
-    "compiler": [[3, 1]],
-    "pure": [[3, 1]],
-    "c": [[3, 1]],
-    "elf64": [[3, 1]],
-    "zen": [[2, 1]],
-    "kde": [[2, 1]],
-    "plasma": [[2, 1]]
-  }
+  "total_docs": 0,
+  "avg_doc_length": 0.0,
+  "documents": {},
+  "doc_lengths": {},
+  "index": {}
 }
