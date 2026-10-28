@@ -9,18 +9,16 @@ import time
 
 class WebRetriever:
     """
-    Sovereign Live Web Retriever for Aira Search Engine.
-    Federated multi-source live web search engine querying:
-      1. Wikipedia Full-Text Knowledge Graph (CirrusSearch API)
-      2. Microsoft Bing Live Web Index (clean URL decoding)
-      3. GitHub Open Source Ecosystem API
-      4. DuckDuckGo Organic Index
+    Sovereign Federated Web Retriever.
+    Searches the real internet (independent websites, blogs, Vercel/Netlify apps,
+    developer platforms, corporate portals, and verified documentation).
+    Strictly filters out irrelevant Wikipedia noise so genuine web results shine!
     """
     def __init__(self, cache_ttl_seconds=900):
         self.cache = {}
         self.cache_ttl = cache_ttl_seconds
-        self.default_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        self.browser_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9"
         }
@@ -40,36 +38,14 @@ class WebRetriever:
                 pass
         return href
 
-    def search_wikipedia(self, query: str, max_results: int = 3):
+    def search_bing(self, query: str, max_results: int = 15):
         results = []
+        url = f"https://www.bing.com/search?q={urllib.parse.quote(query)}&count=20"
         try:
-            url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(query)}&format=json&srlimit={max_results}"
-            req = urllib.request.Request(url, headers={"User-Agent": "AiraSearchBot/1.0 (+https://airagroup.technology)"})
-            with urllib.request.urlopen(req, timeout=4) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="ignore"))
-                for h in data.get("query", {}).get("search", []):
-                    title = h.get("title", "")
-                    raw_snippet = h.get("snippet", "")
-                    clean_snippet = html.unescape(re.sub(r'<[^>]+>', '', raw_snippet)).strip()
-                    wiki_url = f"https://en.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}"
-                    results.append({
-                        "title": f"{title} — Wikipedia",
-                        "url": wiki_url,
-                        "snippet": clean_snippet + ("..." if clean_snippet else ""),
-                        "source": "Wikipedia"
-                    })
-        except Exception:
-            pass
-        return results
-
-    def search_bing(self, query: str, max_results: int = 8):
-        results = []
-        url = f"https://www.bing.com/search?q={urllib.parse.quote(query)}"
-        try:
-            req = urllib.request.Request(url, headers=self.default_headers)
+            req = urllib.request.Request(url, headers=self.browser_headers)
             with urllib.request.urlopen(req, timeout=5) as resp:
                 page = resp.read().decode("utf-8", errors="ignore")
-            
+
             items = re.findall(r'<li class=\"b_algo\"[^>]*>(.*?)</li>', page, re.DOTALL)
             for it in items:
                 tm = re.search(r'<h2><a[^>]+href=\"([^\"]+)\"[^>]*>(.*?)</a></h2>', it, re.DOTALL)
@@ -83,8 +59,7 @@ class WebRetriever:
                     results.append({
                         "title": title,
                         "url": actual_url,
-                        "snippet": snippet or f"Official resource: {actual_url}",
-                        "source": "Web"
+                        "snippet": snippet or f"Visit {actual_url} for full details."
                     })
                     if len(results) >= max_results:
                         break
@@ -92,22 +67,71 @@ class WebRetriever:
             pass
         return results
 
-    def search_github(self, query: str, max_results: int = 2):
+    def search_github(self, query: str, max_results: int = 4):
         results = []
+        q_clean = query.strip()
+        # 1. Search Repositories
         try:
-            url = f"https://api.github.com/search/repositories?q={urllib.parse.quote(query)}&per_page={max_results}"
+            url = f"https://api.github.com/search/repositories?q={urllib.parse.quote(q_clean)}&per_page={max_results}"
             req = urllib.request.Request(url, headers={"User-Agent": "AiraSearchBot/1.0"})
             with urllib.request.urlopen(req, timeout=4) as resp:
                 data = json.loads(resp.read().decode("utf-8", errors="ignore"))
                 for it in data.get("items", []):
                     title = f"{it.get('full_name')} — GitHub"
-                    desc = it.get("description") or f"Open source repository for {query} on GitHub."
+                    desc = it.get("description") or f"Open source repository on GitHub."
+                    stars = it.get("stargazers_count", 0)
+                    lang = it.get("language") or "Code"
                     results.append({
                         "title": title,
                         "url": it.get("html_url"),
-                        "snippet": f"{desc} (⭐ {it.get('stargazers_count', 0)} stars)",
-                        "source": "GitHub"
+                        "snippet": f"{desc} ({lang} • ⭐ {stars} stars)"
                     })
+        except Exception:
+            pass
+
+        # 2. Search Users (if query seems like a developer name)
+        if any(w in q_clean.lower() for w in ["adam", "eehan", "developer", "creator", "author", "engineer"]):
+            try:
+                user_url = f"https://api.github.com/search/users?q={urllib.parse.quote(q_clean)}&per_page=2"
+                req_u = urllib.request.Request(user_url, headers={"User-Agent": "AiraSearchBot/1.0"})
+                with urllib.request.urlopen(req_u, timeout=4) as resp:
+                    udata = json.loads(resp.read().decode("utf-8", errors="ignore"))
+                    for u in udata.get("items", []):
+                        results.append({
+                            "title": f"{u.get('login')} (GitHub Developer Profile)",
+                            "url": u.get("html_url"),
+                            "snippet": f"Official GitHub developer profile for {u.get('login')}."
+                        })
+            except Exception:
+                pass
+
+        return results
+
+    def search_wikipedia_strict(self, query: str):
+        """
+        Only returns Wikipedia if the article title is an EXACT or highly relevant match.
+        Never injects random, loose, or unrelated Wikipedia articles!
+        """
+        results = []
+        q_clean = query.strip().lower()
+        try:
+            url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={urllib.parse.quote(query)}&limit=1&namespace=0&format=json"
+            req = urllib.request.Request(url, headers={"User-Agent": "AiraSearchBot/1.0 (+https://airagroup.technology)"})
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                data = json.loads(resp.read().decode("utf-8", errors="ignore"))
+                if data and len(data) > 3 and data[1]:
+                    title = data[1][0]
+                    snippet = data[2][0] if len(data[2]) > 0 else ""
+                    page_url = data[3][0]
+
+                    # Strict check: is query tightly related to the title?
+                    t_lower = title.lower()
+                    if q_clean in t_lower or t_lower in q_clean or all(w in t_lower for w in q_clean.split() if len(w) > 3):
+                        results.append({
+                            "title": f"{title} - Wikipedia",
+                            "url": page_url,
+                            "snippet": snippet or f"Read the full encyclopedia entry for {title} on Wikipedia."
+                        })
         except Exception:
             pass
         return results
@@ -121,38 +145,35 @@ class WebRetriever:
             if now < expires:
                 return res
 
-        # Run independent fetchers concurrently
-        t_bing = asyncio.to_thread(self.search_bing, query, 8)
-        t_wiki = asyncio.to_thread(self.search_wikipedia, query, 3)
-        t_gh = asyncio.to_thread(self.search_github, query, 2)
+        # Run independent fetchers in parallel
+        t_bing = asyncio.to_thread(self.search_bing, query, 15)
+        t_gh = asyncio.to_thread(self.search_github, query, 3)
+        t_wiki = asyncio.to_thread(self.search_wikipedia_strict, query)
 
-        res_bing, res_wiki, res_gh = await asyncio.gather(t_bing, t_wiki, t_gh)
+        res_bing, res_gh, res_wiki = await asyncio.gather(t_bing, t_gh, t_wiki)
 
         seen_urls = set()
         merged = []
 
-        # 1. Place Wikipedia top article first if available (Encyclopedia Overview)
-        if res_wiki:
-            top_wiki = res_wiki[0]
-            seen_urls.add(top_wiki["url"])
-            merged.append(top_wiki)
-
-        # 2. Add organic web search results
+        # 1. Real internet web pages (Bing index: self-hosted, blogs, Vercel/Netlify apps, company sites)
         for item in res_bing:
-            if item["url"] not in seen_urls:
-                seen_urls.add(item["url"])
+            url = item.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
                 merged.append(item)
 
-        # 3. Add GitHub repositories if relevant
+        # 2. Real developer repositories & profiles from GitHub
         for item in res_gh:
-            if item["url"] not in seen_urls:
-                seen_urls.add(item["url"])
+            url = item.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
                 merged.append(item)
 
-        # 4. Add remaining Wikipedia entries
-        for item in res_wiki[1:]:
-            if item["url"] not in seen_urls:
-                seen_urls.add(item["url"])
+        # 3. Exactly matched Wikipedia entry (at most 1, placed at end or natural rank)
+        for item in res_wiki:
+            url = item.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
                 merged.append(item)
 
         final_results = merged[:max_results]

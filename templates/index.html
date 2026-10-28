@@ -75,7 +75,7 @@
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #4285f4, #34a853, #fbbc05, #ea4335);
+            background: linear-gradient(135deg, #00d2ff, #9d4edd, #f72585);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -101,12 +101,24 @@
             user-select: none;
             display: flex;
             align-items: center;
+            transition: all 0.3s ease;
         }
 
-        .logo .l-blue   { color: #4285f4; }
-        .logo .l-red    { color: #ea4335; }
-        .logo .l-yellow { color: #fbbc05; }
-        .logo .l-green  { color: #34a853; }
+        .logo:hover {
+            filter: drop-shadow(0 4px 24px rgba(0, 210, 255, 0.35));
+        }
+
+        .logo .l-1 { color: #00d2ff; }
+        .logo .l-2 { color: #9d4edd; }
+        .logo .l-3 { color: #f72585; }
+        .logo .l-4 { color: #3a86ff; }
+
+        @media (prefers-color-scheme: dark) {
+            .logo .l-1 { color: #38bdf8; }
+            .logo .l-2 { color: #c084fc; }
+            .logo .l-3 { color: #f472b6; }
+            .logo .l-4 { color: #60a5fa; }
+        }
 
         .search-box {
             width: 100%;
@@ -244,10 +256,10 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="logo">
-            <span class="l-blue">A</span>
-            <span class="l-red">i</span>
-            <span class="l-yellow">r</span>
-            <span class="l-green">a</span>
+            <span class="l-1">A</span>
+            <span class="l-2">i</span>
+            <span class="l-3">r</span>
+            <span class="l-4">a</span>
         </div>
 
         <div class="search-box">

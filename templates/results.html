@@ -23,12 +23,12 @@
             --snippet-color: #4d5156;
             --stats-color: #70757a;
             --border-bottom: #ebebeb;
-            --tab-active: #1a73e8;
+            --tab-active: #8b5cf6;
             --footer-bg: #f2f2f2;
             --footer-border: #dadce0;
             --ai-bg: #f8fafd;
-            --ai-border: #c2e7ff;
-            --ai-grad: linear-gradient(135deg, #4285f4, #9b51e0, #ea4335);
+            --ai-border: #d8b4fe;
+            --ai-grad: linear-gradient(135deg, #00d2ff, #9d4edd, #f72585);
             --kp-bg: #ffffff;
             --kp-border: #dadce0;
         }
@@ -44,12 +44,12 @@
                 --snippet-color: #bdc1c6;
                 --stats-color: #9aa0a6;
                 --border-bottom: #3c4043;
-                --tab-active: #8ab4f8;
+                --tab-active: #a78bfa;
                 --footer-bg: #171717;
                 --footer-border: #3c4043;
                 --ai-bg: #282a2d;
-                --ai-border: #444746;
-                --ai-grad: linear-gradient(135deg, #8ab4f8, #c58af9, #f28b82);
+                --ai-border: #5b21b6;
+                --ai-grad: linear-gradient(135deg, #38bdf8, #c084fc, #f472b6);
                 --kp-bg: #303134;
                 --kp-border: #4a4d51;
             }
@@ -76,6 +76,7 @@
             max-width: 1200px;
         }
 
+        /* Sovereign Aira Logo Colors (No Google Colors!) */
         .logo-small {
             font-size: 30px;
             font-weight: 700;
@@ -84,12 +85,24 @@
             display: flex;
             flex-shrink: 0;
             user-select: none;
+            transition: filter 0.3s ease;
         }
 
-        .logo-small .l-blue   { color: #4285f4; }
-        .logo-small .l-red    { color: #ea4335; }
-        .logo-small .l-yellow { color: #fbbc05; }
-        .logo-small .l-green  { color: #34a853; }
+        .logo-small:hover {
+            filter: drop-shadow(0 2px 10px rgba(0, 210, 255, 0.35));
+        }
+
+        .logo-small .l-1 { color: #00d2ff; }
+        .logo-small .l-2 { color: #9d4edd; }
+        .logo-small .l-3 { color: #f72585; }
+        .logo-small .l-4 { color: #3a86ff; }
+
+        @media (prefers-color-scheme: dark) {
+            .logo-small .l-1 { color: #38bdf8; }
+            .logo-small .l-2 { color: #c084fc; }
+            .logo-small .l-3 { color: #f472b6; }
+            .logo-small .l-4 { color: #60a5fa; }
+        }
 
         .search-form {
             flex: 1;
@@ -127,7 +140,7 @@
         .search-icon {
             width: 20px;
             height: 20px;
-            fill: #4285f4;
+            fill: #9d4edd;
         }
 
         /* Tabs Navigation */
@@ -181,7 +194,7 @@
             margin-bottom: 18px;
         }
 
-        /* ✨ Aira AI Overview (Gemini Style) */
+        /* ✨ Aira AI Overview (Gemini / SGE Experience) */
         .ai-overview-card {
             background: var(--ai-bg);
             border: 1px solid var(--ai-border);
@@ -189,7 +202,7 @@
             padding: 20px;
             margin-bottom: 28px;
             position: relative;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 4px rgba(139, 92, 246, 0.08);
         }
 
         .ai-header {
@@ -208,7 +221,7 @@
         .ai-sparkle-icon {
             width: 22px;
             height: 22px;
-            fill: #4285f4;
+            fill: #9d4edd;
         }
 
         .ai-title {
@@ -221,8 +234,8 @@
 
         .ai-badge {
             font-size: 11px;
-            background: rgba(66, 133, 244, 0.12);
-            color: #1a73e8;
+            background: rgba(157, 78, 221, 0.12);
+            color: #9d4edd;
             font-weight: 600;
             padding: 3px 8px;
             border-radius: 12px;
@@ -230,8 +243,8 @@
 
         @media (prefers-color-scheme: dark) {
             .ai-badge {
-                color: #8ab4f8;
-                background: rgba(138, 180, 248, 0.15);
+                color: #c084fc;
+                background: rgba(192, 132, 252, 0.18);
             }
         }
 
@@ -261,7 +274,7 @@
             content: "•";
             position: absolute;
             left: 4px;
-            color: #4285f4;
+            color: #9d4edd;
             font-size: 18px;
             line-height: 1;
         }
@@ -308,7 +321,142 @@
 
         .ai-chip:hover {
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-            border-color: #4285f4;
+            border-color: #9d4edd;
+        }
+
+        /* 💬 Interactive Follow-Up Chat with Aira */
+        .ai-chat-container {
+            margin-top: 18px;
+            border-top: 1px solid var(--border-bottom);
+            padding-top: 16px;
+        }
+
+        .ai-chat-thread {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .chat-msg {
+            display: flex;
+            width: 100%;
+        }
+
+        .chat-msg.user-msg {
+            justify-content: flex-end;
+        }
+
+        .chat-msg.aira-msg {
+            justify-content: flex-start;
+        }
+
+        .chat-bubble {
+            max-width: 88%;
+            padding: 9px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .user-bubble {
+            background: linear-gradient(135deg, #00d2ff, #3a86ff);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .aira-bubble {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--bar-border);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .chat-msg.thinking .aira-bubble {
+            color: #9d4edd;
+            font-style: italic;
+            animation: pulse 1.4s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .ai-input-row {
+            display: flex;
+            align-items: center;
+            background: var(--bg-color);
+            border: 1px solid var(--bar-border);
+            border-radius: 24px;
+            padding: 4px 6px 4px 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .ai-input-row:focus-within {
+            border-color: #9d4edd;
+            box-shadow: 0 0 0 2px rgba(157, 78, 221, 0.2);
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .ai-send-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #00d2ff, #9d4edd);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            transition: transform 0.15s ease;
+        }
+
+        .ai-send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .ai-send-btn svg {
+            width: 15px;
+            height: 15px;
+            fill: #ffffff;
+        }
+
+        .ai-quick-chips {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ai-chip-btn {
+            background: rgba(157, 78, 221, 0.08);
+            border: 1px solid rgba(157, 78, 221, 0.22);
+            color: var(--text-color);
+            border-radius: 14px;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ai-chip-btn:hover {
+            background: rgba(157, 78, 221, 0.18);
+            border-color: #9d4edd;
         }
 
         .ai-footer-note {
@@ -348,41 +496,8 @@
             object-position: center top;
         }
 
-        .kc-founder-banner {
-            width: 100%;
-            height: 160px;
-            background: linear-gradient(135deg, #1a73e8, #9334e8, #ea4335);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .kc-avatar-wrapper {
-            position: absolute;
-            bottom: -36px;
-            left: 20px;
-            width: 84px;
-            height: 84px;
-            border-radius: 50%;
-            background: var(--kp-bg);
-            padding: 3px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        }
-
-        .kc-avatar-wrapper img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
         .kc-header-body {
             padding: 20px 20px 14px 20px;
-        }
-
-        .kc-header-body.with-avatar {
-            padding-top: 46px;
         }
 
         .kc-title-row {
@@ -400,7 +515,7 @@
         .kc-verified-badge {
             width: 20px;
             height: 20px;
-            fill: #1a73e8;
+            fill: #00d2ff;
             flex-shrink: 0;
         }
 
@@ -468,20 +583,20 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(66, 133, 244, 0.08);
-            border: 1px solid rgba(66, 133, 244, 0.25);
+            background: rgba(0, 210, 255, 0.08);
+            border: 1px solid rgba(0, 210, 255, 0.3);
             border-radius: 16px;
             padding: 6px 14px;
             font-size: 13px;
             font-weight: 500;
-            color: var(--tab-active);
+            color: var(--text-color);
             text-decoration: none;
             transition: all 0.15s ease;
         }
 
         .kc-link-pill:hover {
-            background: rgba(66, 133, 244, 0.16);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: rgba(0, 210, 255, 0.18);
+            border-color: #00d2ff;
         }
 
         /* Clean Organic Search Results */
@@ -550,7 +665,7 @@
 
         .pagination a {
             text-decoration: none;
-            color: #4285f4;
+            color: #9d4edd;
         }
 
         /* Footer */
@@ -593,7 +708,7 @@
             }
             .sidebar-column {
                 width: 100%;
-                order: -1; /* Knowledge card appears on top on mobile/tablet */
+                order: -1;
             }
             .tabs {
                 margin-left: 24px;
@@ -610,11 +725,12 @@
     <!-- Top Navigation Header -->
     <header class="top-bar">
         <div class="top-row">
+            <!-- Sovereign Brand Colors: Cyan, Purple, Magenta, Blue -->
             <a href="/" class="logo-small">
-                <span class="l-blue">A</span>
-                <span class="l-red">i</span>
-                <span class="l-yellow">r</span>
-                <span class="l-green">a</span>
+                <span class="l-1">A</span>
+                <span class="l-2">i</span>
+                <span class="l-3">r</span>
+                <span class="l-4">a</span>
             </a>
 
             <form class="search-form" action="/search" method="get">
@@ -648,7 +764,7 @@
                 About {{ total }} results ({{ time_ms }} ms)
             </div>
 
-            <!-- ✨ Aira AI Overview (Gemini / SGE Experience) -->
+            <!-- ✨ Aira AI Overview (Gemini / SGE Experience with Interactive Follow-Up Chat) -->
             {% if ai_overview %}
             <section class="ai-overview-card">
                 <div class="ai-header">
@@ -684,6 +800,24 @@
                 </div>
                 {% endif %}
 
+                <!-- 💬 Interactive Follow-Up Chat with Aira -->
+                <div class="ai-chat-container">
+                    <div id="ai-chat-thread" class="ai-chat-thread"></div>
+
+                    <div class="ai-input-row">
+                        <input type="text" id="ai-chat-input" class="ai-chat-input" placeholder="Ask Aira a follow up about this..." onkeydown="handleChatKey(event)">
+                        <button type="button" class="ai-send-btn" onclick="submitFollowup()" title="Send to Aira">
+                            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="ai-quick-chips">
+                        <button type="button" class="ai-chip-btn" onclick="quickAsk('Tell me more details about this')">✨ Tell me more</button>
+                        <button type="button" class="ai-chip-btn" onclick="quickAsk('What are the key technical takeaways?')">⚡ Key takeaways</button>
+                        <button type="button" class="ai-chip-btn" onclick="quickAsk('Who is behind this?')">👤 Who is behind this?</button>
+                    </div>
+                </div>
+
                 <div class="ai-footer-note">
                     <svg style="width: 12px; height: 12px; fill: currentColor;" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
@@ -709,12 +843,12 @@
                 {% endfor %}
 
                 <div class="pagination">
-                    <span style="color: #4285f4;">A</span>
-                    <span style="color: #ea4335;">i</span>
-                    <span style="color: #fbbc05;">i</span>
-                    <span style="color: #4285f4;">i</span>
-                    <span style="color: #34a853;">r</span>
-                    <span style="color: #ea4335;">a</span>
+                    <span style="color: #00d2ff;">A</span>
+                    <span style="color: #9d4edd;">i</span>
+                    <span style="color: #f72585;">i</span>
+                    <span style="color: #00d2ff;">i</span>
+                    <span style="color: #3a86ff;">r</span>
+                    <span style="color: #9d4edd;">a</span>
                     <a href="#" style="margin-left: 12px; font-size: 18px;">Next &gt;</a>
                 </div>
             {% else %}
@@ -791,11 +925,82 @@
         </div>
         <div class="footer-links">
             <a href="/">Home</a>
-            <a href="https://airagroup.technology" target="_blank">Aira Group</a>
+            <a href="https://github.com/adameehanairagroup" target="_blank">Aira Group</a>
             <a href="/api/status">Cluster Stats</a>
             <a href="https://github.com/adameehanairagroup/Aira-Search" target="_blank">GitHub</a>
         </div>
     </footer>
+
+    <!-- Interactive Follow-Up Chat Script -->
+    <script>
+    async function submitFollowup() {
+        const input = document.getElementById("ai-chat-input");
+        const thread = document.getElementById("ai-chat-thread");
+        if (!input || !thread) return;
+
+        const prompt = input.value.trim();
+        if (!prompt) return;
+
+        // Add user bubble
+        const userBubble = document.createElement("div");
+        userBubble.className = "chat-msg user-msg";
+        userBubble.innerHTML = `<span class="chat-bubble user-bubble">${escapeHtml(prompt)}</span>`;
+        thread.appendChild(userBubble);
+        input.value = "";
+
+        // Add thinking indicator
+        const thinkingBubble = document.createElement("div");
+        thinkingBubble.className = "chat-msg aira-msg thinking";
+        thinkingBubble.id = "aira-thinking";
+        thinkingBubble.innerHTML = `<span class="chat-bubble aira-bubble">⚡ Aira is thinking...</span>`;
+        thread.appendChild(thinkingBubble);
+        thread.scrollTop = thread.scrollHeight;
+
+        try {
+            const query = "{{ query }}";
+            const res = await fetch(`/api/ai/chat?q=${encodeURIComponent(query)}&prompt=${encodeURIComponent(prompt)}`);
+            const data = await res.json();
+
+            const thinker = document.getElementById("aira-thinking");
+            if (thinker) thinker.remove();
+
+            const airaBubble = document.createElement("div");
+            airaBubble.className = "chat-msg aira-msg";
+            airaBubble.innerHTML = `<span class="chat-bubble aira-bubble">${escapeHtml(data.answer)}</span>`;
+            thread.appendChild(airaBubble);
+            thread.scrollTop = thread.scrollHeight;
+        } catch (e) {
+            const thinker = document.getElementById("aira-thinking");
+            if (thinker) thinker.remove();
+
+            const errBubble = document.createElement("div");
+            errBubble.className = "chat-msg aira-msg";
+            errBubble.innerHTML = `<span class="chat-bubble aira-bubble" style="color: #f72585;">Could not reach Aira AI. Please retry.</span>`;
+            thread.appendChild(errBubble);
+        }
+    }
+
+    function handleChatKey(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            submitFollowup();
+        }
+    }
+
+    function quickAsk(text) {
+        const input = document.getElementById("ai-chat-input");
+        if (input) {
+            input.value = text;
+            submitFollowup();
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.innerText = text;
+        return div.innerHTML;
+    }
+    </script>
 
 </body>
 </html>

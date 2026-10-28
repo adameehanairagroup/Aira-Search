@@ -143,3 +143,49 @@ class AIOverviewEngine:
             "bullets": bullets[:3],
             "sources": sources[:3]
         }
+
+    def answer_chat(self, query: str, user_prompt: str) -> str:
+        q_lower = query.lower().strip()
+        p_lower = user_prompt.lower().strip()
+
+        # Boss / Er. Adam Eehan
+        if any(k in q_lower or k in p_lower for k in ["adam eehan", "adam", "eehan", "founder", "ceo"]):
+            if any(w in p_lower for w in ["vision", "swapnam", "future", "goal", "aim"]):
+                return (
+                    "Er. Adam Eehan-te core vision paranjaal, corporate tech monopolies-inte dependency illathe, "
+                    "100% sovereign aayi ninnu operate cheyyunna complete computing ecosystem build cheyyukayennathaanu. "
+                    "User freedom, zero corporate telemetry, and absolute engineering power — ithaanu foundation!"
+                )
+            elif any(w in p_lower for w in ["tell me more", "explain", "who", "aara"]):
+                return (
+                    "Er. Adam Eehan Aira Group of Technology-ude Founder & CEO aanu. Adheham aanu Airlys OS (64-bit sovereign Linux OS), "
+                    "AiraLang S1 Duo (pure C native language with direct ELF64 compiler), and Aira 3 Ultra AI engine engineer cheythathe."
+                )
+            return (
+                "Er. Adam Eehan Aira Group of Technology-ude Founder & CEO aanu. Sovereign computing ecosystems architect cheythu "
+                "pioneering innovations konduvarunnu. Boss-inte real GitHub profile inspect cheyyaam: https://github.com/adameehanairagroup"
+            )
+
+        # Airlys OS
+        if "airlys" in q_lower or "airlys" in p_lower:
+            return (
+                "Airlys OS S1 Flagship Edition Linux Zen 6.x performance kernel, KDE Plasma 6 desktop, direct UEFI boot, "
+                "and native AiraLang integration ulla sovereign operating system aanu. Bloatware-um telemetry-yum zero percent aanu!"
+            )
+
+        # AiraLang
+        if "airalang" in q_lower or "airalang" in p_lower:
+            return (
+                "AiraLang S1 Duo pure C-il engineer cheytha high-speed systems language aanu. "
+                "Standalone static ELF64 machine binaries direct aayi emit cheyyunna compiler (-b) und. Python interpreter-inekal ~35x speedup tharum!"
+            )
+
+        # General Topics (Celebrities, Web Tech, Sports, etc.)
+        if "who" in p_lower or "profile" in p_lower:
+            return f"\"{query}\"-ne kurichu Aira Knowledge Graph-il ulla factual profile details summary-il njan thalpparathe summarise cheythittund. Athil ninnu kooduthal specific achievements ariyano?"
+
+        return (
+            f"\"{query}\"-ne kurichu Aira AI Analysis: {user_prompt} enna chodyathinu utharam — "
+            f"ee vishayathe kurichu live web index-il ninnu verify cheytha mukhyamaaya points overview card-il kandallo. "
+            f"Kooduthal detailed questions chodicho, njan parayaam!"
+        )

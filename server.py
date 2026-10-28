@@ -145,6 +145,21 @@ async def api_search(background_tasks: BackgroundTasks, q: str = Query(..., alia
         "ai_overview": ai_overview
     }
 
+@app.api_route("/api/ai/chat", methods=["GET", "POST"])
+async def ai_chat(q: str = Query("", alias="q"), prompt: str = Query("", alias="prompt")):
+    clean_p = prompt.strip()
+    clean_q = q.strip()
+    if not clean_p:
+        return JSONResponse({"answer": "Enikk enthaanu sahayam cheyyendath, chodicho!"})
+
+    answer = ai_engine.answer_chat(query=clean_q, user_prompt=clean_p)
+    return {
+        "query": clean_q,
+        "prompt": clean_p,
+        "answer": answer,
+        "model": "Aira 3 Ultra (Engine v3.6)"
+    }
+
 @app.get("/api/status")
 async def api_status():
     uptime_sec = int(time.time() - START_TIME)
